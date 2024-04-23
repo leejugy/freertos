@@ -48,6 +48,7 @@
 extern bool is_uart_receive;
 extern UART_HandleTypeDef huart1;
 bool task_send=false;
+bool uart_flag=false;
 /* USER CODE END Variables */
 /* Definitions for led0 */
 osThreadId_t led0Handle;
@@ -71,7 +72,15 @@ const osMessageQueueAttr_t myQueue01_attributes = {
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
-
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+	uart_flag=true;
+  /* Prevent unused argument(s) compilation warning */
+  UNUSED(huart);
+  /* NOTE: This function should not be modified, when the callback is needed,
+           the HAL_UART_RxCpltCallback could be implemented in the user file
+   */
+}
 /* USER CODE END FunctionPrototypes */
 
 void StartDefaultTask(void *argument);
@@ -137,8 +146,10 @@ void StartDefaultTask(void *argument)
 {
   /* USER CODE BEGIN StartDefaultTask */
 	uint32_t pretime=HAL_GetTick();
-	uint32_t receive_val;
-	uint8_t receive_queue_priority;
+	uint8_t receive_val1;
+	uint8_t receive_val2;
+	uint8_t receive_queue_priority1=0;
+	uint8_t receive_queue_priority2=1;
   /* Infinite loop */
   for(;;)
   {
@@ -148,8 +159,10 @@ void StartDefaultTask(void *argument)
 		pretime=HAL_GetTick();
 	}
 	if(task_send){
-		osMessageQueueGet(myQueue01Handle,&receive_val,&receive_queue_priority,10);
-		printf("task1-1) current receive val:%c\n",(uint8_t)receive_val);
+		osMessageQueueGet(myQueue01Handle,&receive_val1,&receive_queue_priority1,10);
+		printf("task1-1) current receive val:%c, 0x%X\n",receive_val1,receive_val1);
+		osMessageQueueGet(myQueue01Handle,&receive_val2,&receive_queue_priority2,10);
+		printf("task1-2) current receive val:%c, 0x%X\n",receive_val2,receive_val2);
 		task_send=false;
 	}
     osDelay(1);
@@ -168,20 +181,21 @@ void StartTask02(void *argument)
 {
   /* USER CODE BEGIN StartTask02 */
 	uint32_t pretime=HAL_GetTick();
-	uint32_t send_val;
+	uint8_t send_val[2];
   /* Infinite loop */
   for(;;)
   {
 
-	  HAL_UART_Receive(&huart1,(uint8_t*)&send_val,1,100);
-
-	  if(send_val!=0){
+	  HAL_UART_Receive_DMA(&huart1,&send_val[0],2);
+	  if(uart_flag){
 		  printf("\x1B[2J");
-		  printf("task2-1) transmit val:%c\n",(uint8_t)send_val);
+		  printf("task2-1) transmit val:%c, 0x%X\n",send_val[0],send_val[0]);
+		  printf("task2-2) transmit val:%c, 0x%X\n",send_val[1],send_val[1]);
 		  is_uart_receive=false;
-		  osMessageQueuePut(myQueue01Handle,&send_val,1,10);
+		  osMessageQueuePut(myQueue01Handle,&send_val[0],0,10);
+		  osMessageQueuePut(myQueue01Handle,&send_val[1],1,10);
 		  task_send=true;
-		  send_val=0;
+		  uart_flag=false;
 	  }
 	  if(HAL_GetTick()-pretime>300){
 	  	HAL_GPIO_TogglePin(GPIOB,GPIO_PIN_12);
