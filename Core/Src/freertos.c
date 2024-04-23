@@ -137,7 +137,7 @@ void StartDefaultTask(void *argument)
 {
   /* USER CODE BEGIN StartDefaultTask */
 	uint32_t pretime=HAL_GetTick();
-	uint32_t receive_val;
+	uint8_t receive_val;
 	uint8_t receive_queue_priority;
   /* Infinite loop */
   for(;;)
@@ -149,7 +149,7 @@ void StartDefaultTask(void *argument)
 	}
 	if(task_send){
 		osMessageQueueGet(myQueue01Handle,&receive_val,&receive_queue_priority,10);
-		printf("task1-1) current receive val:%c\n",(uint8_t)receive_val);
+		printf("task1-1) current receive val:%c\n",receive_val);
 		task_send=false;
 	}
     osDelay(1);
@@ -168,16 +168,16 @@ void StartTask02(void *argument)
 {
   /* USER CODE BEGIN StartTask02 */
 	uint32_t pretime=HAL_GetTick();
-	uint32_t send_val;
+	uint8_t send_val;
   /* Infinite loop */
   for(;;)
   {
 
-	  HAL_UART_Receive(&huart1,(uint8_t*)&send_val,1,100);
+	  HAL_UART_Receive(&huart1,&send_val,1,100);
 
 	  if(send_val!=0){
 		  printf("\x1B[2J");
-		  printf("task2-1) transmit val:%c\n",(uint8_t)send_val);
+		  printf("task2-1) transmit val:%c\n",send_val);
 		  is_uart_receive=false;
 		  osMessageQueuePut(myQueue01Handle,&send_val,1,10);
 		  task_send=true;
